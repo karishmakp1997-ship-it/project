@@ -1,77 +1,135 @@
-import React, { useState, Component } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-// Mini Project 1: Welcome Message
-function WelcomeMessage() {
-  return (
-    <h2 style={{
-      color: "purple",
-      background: "#fddcdcff",
-      padding: "10px",
-      borderRadius: "6px"
-    }}>
-      Welcome to the Getogether everybody....!!
-    </h2>
-  );
-}
+/*
+1. Introduction to Context API
+Context API is used in React to share data globally (like user, theme, language)
+without passing props manually at every level (prop drilling).
+*/
 
-// Mini Project 2: Click Counter
-class ClickCounter extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { count: 0 };
-  }
-  increment = () => {
-    this.setState({ count: this.state.count + 1 });
+/* 2. Create Context (with default value) */
+const UserContext = createContext({ name: "Guest" });
+const CounterContext = createContext();
+const ThemeContext = createContext("light");
+
+export default function App() {
+  /* 7 & 9. Dynamic Context Value + Update with useState */
+  const [count, setCount] = useState(0);
+  const [theme, setTheme] = useState("light");
+  const [user, setUser] = useState(null);
+
+  /* 13. Context with API Data */
+  useEffect(() => {
+    fetch("https://jsonplaceholder.typicode.com/users/1")
+      .then((res) => res.json())
+      .then((data) => setUser(data));
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
   };
-  render() {
-    return (
-      <div>
-        <h3>Counter: {this.state.count}</h3>
-        <button onClick={this.increment}>Click Me</button>
-      </div>
-    );
-  }
+
+  return (
+    <UserContext.Provider value={user || { name: "Loading..." }}>
+      <CounterContext.Provider value={{ count, setCount }}>
+        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+          <div style={{ padding: 20 }}>
+            <h2>React Context API – Single File Demo</h2>
+
+            {/* 6. Default Context Value (used below without provider example) */}
+            <DefaultUser />
+
+            {/* 3–5. Provider + useContext + Siblings */}
+            <SiblingA />
+            <SiblingB />
+
+            {/* 8. Nested Context Access */}
+            <Parent />
+
+            {/* 12. Theme Toggle */}
+            <ThemeBox />
+
+            {/* 11. Conditional Rendering with Context */}
+            <ConditionalRender />
+
+            {/* 10. Multiple Contexts */}
+            <MultipleContexts />
+          </div>
+        </ThemeContext.Provider>
+      </CounterContext.Provider>
+    </UserContext.Provider>
+  );
 }
 
-// Mini Project 3: Show/Hide Text
-function ShowHideText() {
-  const show = true; // Change to false to hide text
+/* 4. Access Context with useContext */
+function SiblingA() {
+  const { count, setCount } = useContext(CounterContext);
   return (
     <div>
-      {show ? <p>Hello, World!</p> : null}
+      <p>Sibling A Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>+</button>
     </div>
   );
 }
 
-// Mini Project 4: Class Component Timer
-class Timer extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { time: new Date().toLocaleTimeString() };
-  }
-  componentDidMount() {
-    this.interval = setInterval(() => {
-      this.setState({ time: new Date().toLocaleTimeString() });
-    }, 1000);
-  }
-  componentWillUnmount() {
-    clearInterval(this.interval);
-  }
-  render() {
-    return <h3>Current Time: {this.state.time}</h3>;
-  }
+/* 5. Multiple Components with same Context */
+function SiblingB() {
+  const { count } = useContext(CounterContext);
+  return <p>Sibling B Count: {count}</p>;
 }
 
-// Main App – integrates all 4 mini projects:
-function App() {
+/* 6. Default Context Value (no provider) */
+function DefaultUser() {
+  const user = useContext(UserContext);
+  return <p>Default / API User: {user.name}</p>;
+}
+
+/* 8. Nested Context Access */
+function Parent() {
+  return <Child />;
+}
+
+function Child() {
+  return <GrandChild />;
+}
+
+function GrandChild() {
+  const { count } = useContext(CounterContext);
+  return <p>Nested Count: {count}</p>;
+}
+
+/* 10. Multiple Contexts in one component */
+function MultipleContexts() {
+  const user = useContext(UserContext);
+  const { theme } = useContext(ThemeContext);
+
   return (
-    <div>
-      <WelcomeMessage />
-      <ClickCounter />
-      <ShowHideText />
-      <Timer />
-    </div>
+    <p>
+      User: {user.name} | Theme: {theme}
+    </p>
   );
 }
 
-export default App;
+/* 11. Conditional Rendering with Context */
+function ConditionalRender() {
+  const { count } = useContext(CounterContext);
+  return <p>{count % 2 === 0 ? "Even Count" : "Odd Count"}</p>;
+}
+
+/* 12. Theme Toggle using Context */
+function ThemeBox() {
+  const { theme, toggleTheme } = useContext(ThemeContext);
+
+  return (
+    <div
+      style={{
+        marginTop: 10,
+        padding: 10,
+        background: theme === "light" ? "#eee" : "#333",
+        color: theme === "light" ? "#000" : "#fff",
+      }}
+    >
+      <p>Current Theme: {theme}</p>
+      <button onClick={toggleTheme}>Toggle Theme</button>
+    </div>
+  );
+}
